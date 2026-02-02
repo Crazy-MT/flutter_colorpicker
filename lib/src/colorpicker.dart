@@ -18,6 +18,10 @@ class ColorPicker extends StatefulWidget {
     this.onHsvColorChanged,
     this.paletteType = PaletteType.hsvWithHue,
     this.enableAlpha = true,
+    this.enableAlphaToggle = false,
+    this.alphaToggleLabel,
+    this.onAlphaToggleChanged,
+    this.alphaToggleDefault,
     @Deprecated('Use empty list in [labelTypes] to disable label.') this.showLabel = true,
     this.labelTypes = const [ColorLabelType.rgb, ColorLabelType.hsv, ColorLabelType.hsl],
     @Deprecated('Use Theme.of(context).textTheme.bodyText1 & 2 to alter text style.') this.labelTextStyle,
@@ -38,6 +42,10 @@ class ColorPicker extends StatefulWidget {
   final ValueChanged<HSVColor>? onHsvColorChanged;
   final PaletteType paletteType;
   final bool enableAlpha;
+  final bool enableAlphaToggle;
+  final String? alphaToggleLabel;
+  final ValueChanged<bool>? onAlphaToggleChanged;
+  final bool? alphaToggleDefault;
   final bool showLabel;
   final List<ColorLabelType> labelTypes;
   final TextStyle? labelTextStyle;
@@ -168,6 +176,11 @@ class _ColorPickerState extends State<ColorPicker> {
   void initState() {
     currentHsvColor =
         (widget.pickerHsvColor != null) ? widget.pickerHsvColor as HSVColor : HSVColor.fromColor(widget.pickerColor);
+
+    if (widget.enableAlphaToggle && widget.alphaToggleDefault != null) {
+      currentHsvColor = currentHsvColor.withAlpha(widget.alphaToggleDefault! ? 0.0 : 1.0);
+    }
+
     // If there's no initial text in `hexInputController`,
     if (widget.hexInputController?.text.isEmpty == true) {
       // set it to the current's color HEX value.
@@ -274,6 +287,26 @@ class _ColorPickerState extends State<ColorPicker> {
     }
   }
 
+  Widget alphaToggle() {
+    return Row(
+      children: [
+        if (widget.alphaToggleLabel != null) Text(widget.alphaToggleLabel!),
+        Expanded(child: SizedBox()),
+        Switch(
+          value: currentHsvColor.alpha == 0.0,
+          onChanged: (bool value) {
+            setState(() {
+              currentHsvColor = currentHsvColor.withAlpha(value ? 0.0 : 1.0);
+            });
+            widget.onColorChanged(currentHsvColor.toColor());
+            if (widget.onHsvColorChanged != null) widget.onHsvColorChanged!(currentHsvColor);
+            if (widget.onAlphaToggleChanged != null) widget.onAlphaToggleChanged!(value);
+          },
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (MediaQuery.of(context).orientation == Orientation.portrait || widget.portraitOnly) {
@@ -307,6 +340,12 @@ class _ColorPickerState extends State<ColorPicker> {
                           height: 40.0,
                           width: widget.colorPickerWidth - 75.0,
                           child: colorPickerSlider(TrackType.alpha),
+                        ),
+                      if (widget.enableAlphaToggle)
+                        SizedBox(
+                          height: 40.0,
+                          width: widget.colorPickerWidth - 75.0,
+                          child: alphaToggle(),
                         ),
                     ],
                   ),
@@ -382,6 +421,8 @@ class _ColorPickerState extends State<ColorPicker> {
                       SizedBox(height: 40.0, width: 260.0, child: sliderByPaletteType()),
                       if (widget.enableAlpha)
                         SizedBox(height: 40.0, width: 260.0, child: colorPickerSlider(TrackType.alpha)),
+                      if (widget.enableAlphaToggle)
+                        SizedBox(height: 40.0, width: 260.0, child: alphaToggle()),
                     ],
                   ),
                   const SizedBox(width: 10.0),
